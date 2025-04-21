@@ -42,8 +42,8 @@ const options = [
   { label: 'Nie wiem', value: 0 },
 ];
 
-const bannerAdUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-xxxxxxxxxxxxx/yyyyyyyyyyyyyy';
-const rewardedAdUnitId = __DEV__ ? TestIds.REWARDED : 'ca-app-pub-xxxxxxxxxxxxx/zzzzzzzzzzzz';
+const bannerAdUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-6914323006576021/3248577881';
+const rewardedAdUnitId = __DEV__ ? TestIds.REWARDED : 'ca-app-pub-6914323006576021/1259579495';
 const rewardedAd = RewardedAd.createForAdRequest(rewardedAdUnitId);
 
 export default function App() {
@@ -82,7 +82,7 @@ export default function App() {
       return;
     }
     try {
-      const res = await axios.post('https://twoj-backend.onrender.com/predict', {
+      const res = await axios.post('https://wyborai-backend.onrender.com/predict', {
         answers,
       });
       setResult(`${res.data.candidate} (${res.data.match_percent}%)`);
@@ -103,7 +103,7 @@ export default function App() {
         </Text>
         <Text style={styles.loadingText}>
           Nie zapisujemy Twoich danych osobowych ani odpowiedzi. Kontynuując, wyrażasz zgodę na przetwarzanie danych zgodnie z naszą{' '}
-          <Text style={{ color: 'blue' }} onPress={() => Linking.openURL('https://github.com/twoj-login/twoje-repo/blob/main/Polityka_Prywatnosci.md')}>
+          <Text style={{ color: 'blue' }} onPress={() => Linking.openURL('https://github.com/Dstaszcz/WyborAI/blob/main/Polityka_Prywatnosci.md')}>
             Polityką Prywatności
           </Text>.
         </Text>
