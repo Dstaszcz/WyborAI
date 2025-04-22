@@ -1,0 +1,18 @@
+# dependencies
+/node_modules
+/.expo
+/.expo-shared
+
+# builds
+/android
+/ios
+/dist
+/build
+
+# misc
+*.log
+*.lock
+.DS_Store
+.env
+../.idea/
+.vscode/

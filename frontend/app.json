@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "extra": {
+      "eas": {
+        "projectId": "0e70842b-afa2-4bb2-9676-51f3bd446a10"
+      }
+    },
+    "android": {
+      "package": "com.wybierAI"
+    }
+  }
+}

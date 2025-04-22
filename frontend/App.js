@@ -1,7 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import { SafeAreaView, View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView } from 'react-native';
+import {
+  SafeAreaView, View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Linking
+} from 'react-native';
 import axios from 'axios';
-import { BannerAd, BannerAdSize, TestIds, RewardedAd, RewardedAdEventType } from 'react-native-google-mobile-ads';
+import {
+  AdMobBanner, AdMobRewarded, setTestDeviceIDAsync
+} from 'expo-ads-admob';
 
 const questions = [
   "Popieram liberalizację prawa aborcyjnego.",
@@ -42,9 +46,13 @@ const options = [
   { label: 'Nie wiem', value: 0 },
 ];
 
-const bannerAdUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-6914323006576021/3248577881';
-const rewardedAdUnitId = __DEV__ ? TestIds.REWARDED : 'ca-app-pub-6914323006576021/1259579495';
-const rewardedAd = RewardedAd.createForAdRequest(rewardedAdUnitId);
+const bannerAdUnitId = __DEV__
+  ? 'ca-app-pub-3940256099942544/6300978111'
+  : 'ca-app-pub-6914323006576021/3248577881';
+
+const rewardedAdUnitId = __DEV__
+  ? 'ca-app-pub-3940256099942544/5224354917'
+  : 'ca-app-pub-6914323006576021/1259579495';
 
 export default function App() {
   const [consentAccepted, setConsentAccepted] = useState(false);
@@ -56,27 +64,36 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = rewardedAd.addAdEventListener(RewardedAdEventType.EARNED_REWARD, () => {
-      fetchResult();
-    });
-    rewardedAd.load();
-    return () => unsubscribe();
+    setTestDeviceIDAsync('EMULATOR');
+    setupRewardedAd();
   }, []);
 
-  const handleAnswer = (value) => {
+  const setupRewardedAd = async () => {
+    await AdMobRewarded.setAdUnitID(rewardedAdUnitId);
+    await AdMobRewarded.requestAdAsync();
+
+    AdMobRewarded.addEventListener('rewardedVideoUserDidEarnReward', () => {
+      fetchResult();
+    });
+
+    AdMobRewarded.addEventListener('rewardedVideoDidFailToLoad', () => {
+      Alert.alert("Błąd reklamy", "Nie udało się załadować reklamy – spróbuj ponownie.");
+    });
+  };
+
+  const handleAnswer = async (value) => {
     const updated = [...answers, value];
     setAnswers(updated);
 
     if (currentQuestion < questions.length - 1) {
       setCurrentQuestion(currentQuestion + 1);
     } else {
-      rewardedAd.show();
+      await AdMobRewarded.showAdAsync();
     }
   };
 
   const fetchResult = async () => {
     setLoading(true);
-    const startTime = Date.now();
     if (answers.length !== questions.length) {
       Alert.alert("Błąd", "Udziel odpowiedzi na wszystkie pytania.");
       return;
@@ -95,23 +112,23 @@ export default function App() {
 
   if (!consentAccepted) {
     return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <Text style={styles.finalTitle}>Zgoda na przetwarzanie danych</Text>
-        <Text style={styles.loadingText}>
-          Aplikacja wyświetla reklamy Google AdMob, które mogą używać danych urządzenia do personalizacji treści.
-        </Text>
-        <Text style={styles.loadingText}>
-          Nie zapisujemy Twoich danych osobowych ani odpowiedzi. Kontynuując, wyrażasz zgodę na przetwarzanie danych zgodnie z naszą{' '}
-          <Text style={{ color: 'blue' }} onPress={() => Linking.openURL('https://github.com/Dstaszcz/WyborAI/blob/main/Polityka_Prywatnosci.md')}>
-            Polityką Prywatności
-          </Text>.
-        </Text>
-        <TouchableOpacity onPress={() => setConsentAccepted(true)} style={styles.button}>
-          <Text style={styles.buttonText}>Akceptuję i przechodzę dalej</Text>
-        </TouchableOpacity>
-      </ScrollView>
-    </SafeAreaView>
+      <SafeAreaView style={styles.container}>
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <Text style={styles.finalTitle}>Zgoda na przetwarzanie danych</Text>
+          <Text style={styles.loadingText}>
+            Aplikacja wyświetla reklamy Google AdMob, które mogą używać danych urządzenia do personalizacji treści.
+          </Text>
+          <Text style={styles.loadingText}>
+            Nie zapisujemy Twoich danych osobowych ani odpowiedzi. Kontynuując, wyrażasz zgodę na przetwarzanie danych zgodnie z naszą{' '}
+            <Text style={{ color: 'blue' }} onPress={() => Linking.openURL('https://github.com/Dstaszcz/WyborAI/blob/main/Polityka_Prywatnosci.md')}>
+              Polityką Prywatności
+            </Text>.
+          </Text>
+          <TouchableOpacity onPress={() => setConsentAccepted(true)} style={styles.button}>
+            <Text style={styles.buttonText}>Akceptuję i przechodzę dalej</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
     );
   }
 
@@ -145,7 +162,12 @@ export default function App() {
             <Text style={styles.restartText}>Zacznij od nowa</Text>
           </TouchableOpacity>
           <View style={styles.adContainer}>
-            <BannerAd unitId={bannerAdUnitId} size={BannerAdSize.FULL_BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+            <AdMobBanner
+              bannerSize="fullBanner"
+              adUnitID={bannerAdUnitId}
+              servePersonalizedAds
+              onDidFailToReceiveAdWithError={(e) => console.log('AdMob error:', e)}
+            />
           </View>
         </ScrollView>
       </SafeAreaView>
@@ -180,7 +202,12 @@ export default function App() {
         ))}
       </View>
       <View style={styles.adContainer}>
-        <BannerAd unitId={bannerAdUnitId} size={BannerAdSize.BANNER} requestOptions={{ requestNonPersonalizedAdsOnly: true }} />
+        <AdMobBanner
+          bannerSize="smartBannerPortrait"
+          adUnitID={bannerAdUnitId}
+          servePersonalizedAds
+          onDidFailToReceiveAdWithError={(e) => console.log('AdMob error:', e)}
+        />
       </View>
     </SafeAreaView>
   );
