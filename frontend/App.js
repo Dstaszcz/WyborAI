@@ -1,11 +1,23 @@
 import React, { useEffect, useState } from 'react';
 import {
-  SafeAreaView, View, Text, TouchableOpacity, StyleSheet, Alert, ActivityIndicator, ScrollView, Linking
+  SafeAreaView,
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Alert,
+  ActivityIndicator,
+  ScrollView,
+  Linking
 } from 'react-native';
 import axios from 'axios';
-import {
-  AdMobBanner, AdMobRewarded, setTestDeviceIDAsync
-} from 'expo-ads-admob';
+import mobileAds, {
+  BannerAd,
+  BannerAdSize,
+  RewardedAd,
+  RewardedAdEventType,
+  TestIds
+} from 'react-native-google-mobile-ads';
 
 const questions = [
   "Popieram liberalizację prawa aborcyjnego.",
@@ -46,101 +58,114 @@ const options = [
   { label: 'Nie wiem', value: 0 },
 ];
 
+// Podmień TestIds na swoje produkcyjne Ad Unit ID
 const bannerAdUnitId = __DEV__
-  ? 'ca-app-pub-3940256099942544/6300978111'
+  ? TestIds.BANNER
   : 'ca-app-pub-6914323006576021/3248577881';
-
 const rewardedAdUnitId = __DEV__
-  ? 'ca-app-pub-3940256099942544/5224354917'
+  ? TestIds.REWARDED
   : 'ca-app-pub-6914323006576021/1259579495';
+
+const rewarded = RewardedAd.createForAdRequest(rewardedAdUnitId);
 
 export default function App() {
   const [consentAccepted, setConsentAccepted] = useState(false);
-  const [showStart, setShowStart] = useState(false);
+  const [showStart, setShowStart] = useState(true);
   const [currentQuestion, setCurrentQuestion] = useState(0);
   const [answers, setAnswers] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+  const [result, setResult] = useState('');
   const [showResult, setShowResult] = useState(false);
 
   useEffect(() => {
-    setTestDeviceIDAsync('EMULATOR');
-    setupRewardedAd();
+    // inicjalizacja SDK
+    mobileAds()
+      .initialize()
+      .then(() => {
+        // SDK gotowe
+      });
+
+    const earnedListener = rewarded.addAdEventListener(
+      RewardedAdEventType.EARNED_REWARD,
+      () => fetchResult()
+    );
+    const failListener = rewarded.addAdEventListener(
+      RewardedAdEventType.AD_FAILED_TO_LOAD,
+      () => Alert.alert('Błąd reklamy', 'Nie udało się załadować reklamy.')
+    );
+
+    rewarded.load();
+
+    return () => {
+      earnedListener();
+      failListener();
+    };
   }, []);
 
-  const setupRewardedAd = async () => {
-    await AdMobRewarded.setAdUnitID(rewardedAdUnitId);
-    await AdMobRewarded.requestAdAsync();
-
-    AdMobRewarded.addEventListener('rewardedVideoUserDidEarnReward', () => {
-      fetchResult();
-    });
-
-    AdMobRewarded.addEventListener('rewardedVideoDidFailToLoad', () => {
-      Alert.alert("Błąd reklamy", "Nie udało się załadować reklamy – spróbuj ponownie.");
-    });
-  };
-
-  const handleAnswer = async (value) => {
-    const updated = [...answers, value];
-    setAnswers(updated);
-
-    if (currentQuestion < questions.length - 1) {
-      setCurrentQuestion(currentQuestion + 1);
+  const handleAnswer = (value) => {
+    setAnswers(prev => [...prev, value]);
+    if (currentQuestion + 1 < questions.length) {
+      setCurrentQuestion(q => q + 1);
     } else {
-      await AdMobRewarded.showAdAsync();
+      // pokazujemy rewarded
+      rewarded.show();
     }
   };
 
   const fetchResult = async () => {
     setLoading(true);
-    if (answers.length !== questions.length) {
-      Alert.alert("Błąd", "Udziel odpowiedzi na wszystkie pytania.");
-      return;
-    }
     try {
-      const res = await axios.post('https://wyborai-backend.onrender.com/predict', {
-        answers,
-      });
+      const res = await axios.post(
+        'https://wyborai-backend.onrender.com/predict',
+        { answers }
+      );
       setResult(`${res.data.candidate} (${res.data.match_percent}%)`);
       setShowResult(true);
-    } catch (err) {
+    } catch {
       Alert.alert('Błąd', 'Nie udało się połączyć z serwerem.');
     }
     setLoading(false);
   };
 
+  // flow ekranów
   if (!consentAccepted) {
     return (
       <SafeAreaView style={styles.container}>
         <ScrollView contentContainerStyle={styles.scrollContainer}>
           <Text style={styles.finalTitle}>Zgoda na przetwarzanie danych</Text>
           <Text style={styles.loadingText}>
-            Aplikacja wyświetla reklamy Google AdMob, które mogą używać danych urządzenia do personalizacji treści.
+            Aplikacja wyświetla reklamy Google AdMob, które mogą używać danych urządzenia do personalizacji.
           </Text>
           <Text style={styles.loadingText}>
-            Nie zapisujemy Twoich danych osobowych ani odpowiedzi. Kontynuując, wyrażasz zgodę na przetwarzanie danych zgodnie z naszą{' '}
-            <Text style={{ color: 'blue' }} onPress={() => Linking.openURL('https://github.com/Dstaszcz/WyborAI/blob/main/Polityka_Prywatnosci.md')}>
+            Nie zapisujemy Twoich danych osobowych ani odpowiedzi. Kontynuując, akceptujesz naszą{' '}
+            <Text
+              style={{ color: 'blue' }}
+              onPress={() =>
+                Linking.openURL(
+                  'https://github.com/Dstaszcz/WyborAI/blob/main/Polityka_Prywatnosci.md'
+                )
+              }>
               Polityką Prywatności
-            </Text>.
+            </Text>
+            .
           </Text>
-          <TouchableOpacity onPress={() => setConsentAccepted(true)} style={styles.button}>
+          <TouchableOpacity
+            onPress={() => setConsentAccepted(true)}
+            style={styles.button}>
             <Text style={styles.buttonText}>Akceptuję i przechodzę dalej</Text>
           </TouchableOpacity>
         </ScrollView>
       </SafeAreaView>
     );
   }
-
   if (loading) {
     return (
       <SafeAreaView style={styles.container}>
         <ActivityIndicator size="large" color="#007bff" />
-        <Text style={styles.loadingText}>Analizuję Twoje odpowiedzi...</Text>
+        <Text style={styles.loadingText}>Analizuję Twoje odpowiedzi…</Text>
       </SafeAreaView>
     );
   }
-
   if (showResult) {
     return (
       <SafeAreaView style={styles.container}>
@@ -148,65 +173,72 @@ export default function App() {
           <Text style={styles.finalTitle}>Twój kandydat to:</Text>
           <Text style={styles.candidate}>{result}</Text>
           <Text style={styles.summaryTitle}>Twoje odpowiedzi:</Text>
-          {answers.map((val, i) => (
+          {answers.map((v, i) => (
             <Text key={i} style={styles.summaryLine}>
-              {i + 1}. {questions[i]} → {val === 1 ? 'Zgadzam się' : val === -1 ? 'Nie zgadzam się' : 'Nie wiem'}
+              {i + 1}. {questions[i]} →{' '}
+              {v === 1
+                ? 'Zgadzam się'
+                : v === -1
+                ? 'Nie zgadzam się'
+                : 'Nie wiem'}
             </Text>
           ))}
-          <TouchableOpacity onPress={() => {
-            setAnswers([]);
-            setResult(null);
-            setCurrentQuestion(0);
-            setShowResult(false);
-          }} style={styles.restartButton}>
+          <TouchableOpacity
+            onPress={() => {
+              setAnswers([]);
+              setResult('');
+              setCurrentQuestion(0);
+              setShowResult(false);
+              setShowStart(true);
+            }}
+            style={styles.restartButton}>
             <Text style={styles.restartText}>Zacznij od nowa</Text>
           </TouchableOpacity>
           <View style={styles.adContainer}>
-            <AdMobBanner
-              bannerSize="fullBanner"
-              adUnitID={bannerAdUnitId}
-              servePersonalizedAds
-              onDidFailToReceiveAdWithError={(e) => console.log('AdMob error:', e)}
+            <BannerAd
+              unitId={bannerAdUnitId}
+              size={BannerAdSize.FULL_BANNER}
             />
           </View>
         </ScrollView>
       </SafeAreaView>
     );
   }
-
   if (showStart) {
     return (
       <SafeAreaView style={styles.container}>
         <Text style={styles.finalTitle}>Quiz Wyborczy 2025</Text>
-        <Text style={styles.loadingText}>Dowiedz się, z którym kandydatem masz najwięcej wspólnego!</Text>
-        <TouchableOpacity onPress={() => setShowStart(false)} style={styles.button}>
+        <Text style={styles.loadingText}>
+          Dowiedz się, z którym kandydatem masz najwięcej wspólnego!
+        </Text>
+        <TouchableOpacity
+          onPress={() => setShowStart(false)}
+          style={styles.button}>
           <Text style={styles.buttonText}>Rozpocznij quiz</Text>
         </TouchableOpacity>
       </SafeAreaView>
     );
   }
-
   return (
     <SafeAreaView style={styles.container}>
-      <Text style={styles.questionCounter}>{currentQuestion + 1}/{questions.length}</Text>
+      <Text style={styles.questionCounter}>
+        {currentQuestion + 1}/{questions.length}
+      </Text>
       <Text style={styles.question}>{questions[currentQuestion]}</Text>
       <View style={styles.optionsContainer}>
-        {options.map((opt) => (
+        {options.map(opt => (
           <TouchableOpacity
             key={opt.value}
             onPress={() => handleAnswer(opt.value)}
-            style={styles.button}
-          >
+            style={styles.button}>
             <Text style={styles.buttonText}>{opt.label}</Text>
           </TouchableOpacity>
         ))}
       </View>
       <View style={styles.adContainer}>
-        <AdMobBanner
-          bannerSize="smartBannerPortrait"
-          adUnitID={bannerAdUnitId}
-          servePersonalizedAds
-          onDidFailToReceiveAdWithError={(e) => console.log('AdMob error:', e)}
+        <BannerAd
+          unitId={bannerAdUnitId}
+          size={BannerAdSize.BANNER}
         />
       </View>
     </SafeAreaView>
@@ -219,76 +251,76 @@ const styles = StyleSheet.create({
     backgroundColor: '#f8fafc',
     alignItems: 'center',
     justifyContent: 'center',
-    padding: 16,
+    padding: 16
   },
   scrollContainer: {
     alignItems: 'center',
-    padding: 16,
+    padding: 16
   },
   questionCounter: {
     fontSize: 16,
     marginBottom: 8,
-    color: '#888',
+    color: '#888'
   },
   question: {
     fontSize: 20,
     textAlign: 'center',
     marginBottom: 24,
-    fontWeight: '600',
+    fontWeight: '600'
   },
   optionsContainer: {
-    width: '100%',
+    width: '100%'
   },
   button: {
     backgroundColor: '#007bff',
     padding: 16,
     borderRadius: 10,
-    marginVertical: 8,
+    marginVertical: 8
   },
   buttonText: {
     color: '#fff',
     fontSize: 18,
-    textAlign: 'center',
+    textAlign: 'center'
   },
   finalTitle: {
     fontSize: 24,
     fontWeight: '700',
-    marginBottom: 16,
+    marginBottom: 16
   },
   summaryTitle: {
     fontSize: 18,
     fontWeight: '600',
-    marginVertical: 12,
+    marginVertical: 12
   },
   summaryLine: {
     fontSize: 14,
     marginBottom: 6,
-    textAlign: 'left',
+    textAlign: 'left'
   },
   candidate: {
     fontSize: 20,
     color: '#16a34a',
-    marginBottom: 24,
+    marginBottom: 24
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
-    color: '#555',
+    color: '#555'
   },
   adContainer: {
     marginTop: 24,
-    alignItems: 'center',
+    alignItems: 'center'
   },
   restartButton: {
     backgroundColor: '#ef4444',
     padding: 12,
     borderRadius: 8,
-    marginTop: 24,
+    marginTop: 24
   },
   restartText: {
     color: '#fff',
     fontSize: 16,
     textAlign: 'center',
-    fontWeight: '600',
-  },
+    fontWeight: '600'
+  }
 });

@@ -1,12 +1,59 @@
 {
   "expo": {
+    "name": "Quiz Wyborczy 2025",
+    "slug": "wyborai-app",
+    "version": "1.0.0",
+    "sdkVersion": "52.0.3",
+    "platforms": ["android", "ios", "web"],
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#ffffff"
+    },
+    "updates": {
+      "fallbackToCacheTimeout": 0
+    },
+    "assetBundlePatterns": ["**/*"],
     "extra": {
       "eas": {
         "projectId": "0e70842b-afa2-4bb2-9676-51f3bd446a10"
       }
     },
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 33,
+            "targetSdkVersion": 33,
+            "buildToolsVersion": "33.0.0",
+            "kotlinVersion": "1.7.10"
+          }
+        }
+      ]
+    ],
     "android": {
-      "package": "com.wybierAI"
+      "package": "com.wybierai.quiz2025",
+      "versionCode": 1,
+      "permissions": [],
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#ffffff"
+      }
+    },
+    "ios": {
+      "bundleIdentifier": "com.wybierai.quiz2025",
+      "buildNumber": "1.0.0",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Potrzebujemy dostępu do zdjęć, aby…"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
     }
   }
 }

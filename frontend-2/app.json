@@ -1,0 +1,91 @@
+{
+  "expo": {
+    "name": "wybierAI",
+    "slug": "wyborai-app",
+    "version": "1.0.0",
+    "runtimeVersion": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+
+    "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF",
+      "dark": {
+        "backgroundColor": "#000000"
+      }
+    },
+
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "bundleIdentifier": "com.wybierai.quiz2025",
+      "buildNumber": "1.0.0",
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Aby umożliwić dodawanie zdjęć"
+      }
+    },
+    "android": {
+      "package": "com.wybierai.quiz2025",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#FFFFFF",
+        "monochromeImage": "./assets/icon.png"
+      },
+      "permissions": [],
+      "softwareKeyboardLayoutMode": "resize"
+    },
+    "web": {
+      "favicon": "./assets/icon.png",
+      "bundler": "metro"
+    },
+
+
+    "plugins": [
+      "expo-dev-client",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "compileSdkVersion": 35,
+            "targetSdkVersion": 35,
+            "buildToolsVersion": "35.0.0",
+            "kotlinVersion": "1.9.24"
+          },
+          "ios": {
+            "useFrameworks": "static"
+          }
+        }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-xxxxxxxx~xxxxxxxx",  // Wymagane dla AdMob
+          "iosAppId": "ca-app-pub-xxxxxxxx~xxxxxxxx"
+        }
+      ]
+    ],
+
+    // Konfiguracja EAS
+    "extra": {
+      "eas": {
+        "projectId": "0e70842b-afa2-4bb2-9676-51f3bd446a10"
+      }
+    },
+
+    // Konfiguracja aktualizacji
+    "updates": {
+      "url": "https://u.expo.dev/0e70842b-afa2-4bb2-9676-51f3bd446a10",
+      "fallbackToCacheTimeout": 3000
+    },
+
+    // Środowiska developerskie
+    "scheme": "wybierai",
+    "androidStatusBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#FFFFFF"
+    }
+  }
+}
